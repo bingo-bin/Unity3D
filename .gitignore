@@ -1,2 +1,10 @@
 /Library
 /Temp
+/Assembly-CSharp-vs.csproj
+/Assembly-CSharp.csproj
+/Assembly-CSharp-Editor.csproj
+/Assembly-CSharp-Editor-vs.csproj
+/Unity3D-csharp.sln
+/Unity3D-csharp.v11.suo
+/Unity3D.sln
+/obj
