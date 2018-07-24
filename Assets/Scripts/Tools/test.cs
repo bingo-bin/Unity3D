@@ -17,8 +17,9 @@ public class test : MonoBehaviour {
             SoundData tempdata = DataManager.GetSoundDataById(i);
             if (tempdata != null)
             {
-                Debug.Log(tempdata.Id + ":" + tempdata.Name + ":" + tempdata.FullPathName);
+                //Debug.Log(tempdata.Id + ":" + tempdata.Name + ":" + tempdata.FullPathName);
             }
         }
+        //Debug.Log(StrDictionary.GetDictionaryString("#{2}"));
 	}
 }

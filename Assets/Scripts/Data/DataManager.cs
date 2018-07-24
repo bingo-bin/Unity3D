@@ -26,6 +26,7 @@ public class DataManager  {
 	public static void OnLoadBundleFinished()
 	{
         ClearAllList();
+        LocalizationManager.BundleLoadDictionary();
         mSoundDataDic = DataReader.LoadTable<int, SoundData>("SoundData", "Id");
 		initDoneFlag = true;
 		BundleManager.UnloadDataBundle();
