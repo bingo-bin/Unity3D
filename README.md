@@ -8,3 +8,5 @@ unity 4.7.1
 3.Advanced PlayerPrefs Window
 
 
+DataManager
+UIManager
