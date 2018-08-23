@@ -1,13 +1,47 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
+using System;
 public class UIManager : SingletonUnity<UIManager> {
 
-    public delegate void OnOpenUIDelegate(bool bSuccess, object param);
-    public delegate void OnLoadUIDelegate(GameObject resObject, object param);
-    private Dictionary<string, GameObject> mDicUI = new Dictionary<string, GameObject>();
-    public List<UIPathData> CurShowUIList = new List<UIPathData>();
+    private UIPanel BaseUIRoot = null;
+    private UIPanel PopUIRoot = null;
+    private UIPanel TopBarUIRoot = null;
+    private UIPanel DialogUIRoot = null;
+    private UIPanel TipUIRoot = null;
+    public delegate void OnOpenUIDelegate(BaseView view, object param);
+
+    private Dictionary<string, BaseView> mDicCache = new Dictionary<string, BaseView>();
+    private Dictionary<string, BaseView> mDicBase = new Dictionary<string, BaseView>();
+    private Dictionary<string, BaseView> mDicPop = new Dictionary<string, BaseView>();
+    private Dictionary<string, BaseView> mDicTop = new Dictionary<string, BaseView>();
+    private Dictionary<string, BaseView> mDicDialog = new Dictionary<string, BaseView>();
+
+    private Dictionary<string, BaseView> mDicTip = new Dictionary<string, BaseView>();
+
+    private List<BaseView> mShowViewList = new List<BaseView>();
+    private List<BaseView> mShowDialogList = new List<BaseView>();
+    private List<BaseView> mShowTopBarList = new List<BaseView>();
+
+    UIPanel CreateRootObj(string objName, int depth)
+    {
+        GameObject obj = new GameObject();
+        obj.gameObject.name = objName;
+        obj.transform.parent = gameObject.transform;
+        NGUITools.SetLayer(obj, gameObject.layer);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+        obj.transform.localScale = Vector3.one;
+        UIPanel retPanel = obj.AddComponent<UIPanel>();
+
+        if (retPanel != null)
+        {
+            retPanel.depth = depth;
+
+        }
+        return retPanel;
+    }
+
     protected override void Awake()
     {
         base.Awake();
@@ -21,21 +55,87 @@ public class UIManager : SingletonUnity<UIManager> {
 
     void Init()
     {
-        mDicUI.Clear();
-        CurShowUIList.Clear();
+        if (BaseUIRoot == null)
+        {
+            BaseUIRoot = CreateRootObj("BaseUIRoot", 10);
+        }
+        if (PopUIRoot == null)
+        {
+            PopUIRoot = CreateRootObj("PopUIRoot", 20);
+        }
+        if (TopBarUIRoot == null)
+        {
+            TopBarUIRoot = CreateRootObj("TopBarUIRoot", 30);
+        }
+        if (DialogUIRoot == null)
+        {
+            DialogUIRoot = CreateRootObj("DialogUIRoot", 40);
+        }
+        if (TipUIRoot == null)
+        {
+            TipUIRoot = CreateRootObj("TipUIRoot", 50);
+        }
     }
 
-    public void ShowUI(UIPathData pathData, OnOpenUIDelegate delOpenUI = null, object param = null)
+    public void ShowUIWithEnter(UIData pathData, OnOpenUIDelegate delOpen = null, object parm = null)
     {
-        if (mDicUI.ContainsKey(pathData.name))
+        ShowUI(pathData, delegate(BaseView view, object param)
         {
-            DoShowUI(pathData, mDicUI[pathData.name], delOpenUI, param);
+            if (view != null)
+            {
+                view.OnEnter(parm, delegate
+                {
+                    {
+                        if (delOpen != null)
+                        {
+                            delOpen(view, parm);
+                        }
+                    }
+                });
+            }
+        }, parm);
+    }
+
+    public void ShowUI(UIData pathData, OnOpenUIDelegate delOpenUI = null, object parm = null)
+    {
+        Dictionary<string, BaseView> curDic = null;
+        switch (pathData.uiType)
+        {
+            case UIData.UIType.TYPE_BASE:
+                curDic = mDicBase;
+                break;
+            case UIData.UIType.TYPE_POP:
+                curDic = mDicPop;
+                break;
+            case UIData.UIType.TYPE_DIALOG:
+                curDic = mDicDialog;
+                break;
+            case UIData.UIType.TYPE_TIPS:
+
+                break;
+            case UIData.UIType.TYPE_TOP_BAR:
+                curDic = mDicTop;
+                break;
+        }
+        if (curDic == null)
+            return;
+        if (mDicCache.ContainsKey(pathData.name))
+        {
+            if (!curDic.ContainsKey(pathData.name))
+            {
+                curDic.Add(pathData.name, mDicCache[pathData.name]);
+            }
+            mDicCache.Remove(pathData.name);
+        }
+        if (curDic.ContainsKey(pathData.name))
+        {
+            DoShowUI(pathData, curDic[pathData.name].gameObject, delOpenUI, parm);
             return;
         }
-        LoadUI(pathData, delOpenUI, param);
+        LoadUI(pathData, delOpenUI, parm);
     }
 
-    public void LoadUI(UIPathData pathData, OnOpenUIDelegate delOpenUI = null, object param = null)
+    public void LoadUI(UIData pathData, OnOpenUIDelegate delOpenUI = null, object param = null)
     {
         string str = "UI/" + pathData.path;
         GameObject curWindow = ResourcesManager.Load(str) as GameObject;
@@ -45,101 +145,217 @@ public class UIManager : SingletonUnity<UIManager> {
             return;
         }
     }
-    void DoShowUI(UIPathData pathData, GameObject curWindow, OnOpenUIDelegate delOpenUI, object param = null)
+    void DoShowUI(UIData pathData, GameObject curWindow, OnOpenUIDelegate delOpenUI, object parm = null)
     {
         if (curWindow == null)
         {
+            if (delOpenUI != null)
+            {
+                delOpenUI(null, parm);
+            }
             return;
         }
-        Transform parent = this.transform;
-       
-        if (mDicUI.ContainsKey(pathData.name))
+        BaseView view = null;
+        Transform parent;
+        Dictionary<string, BaseView> relativeDic = null;
+        List<BaseView> mShowList = null;
+        switch (pathData.uiType)
         {
-            if (UnityVersionUtil.IsActive(mDicUI[pathData.name]) == false)
-            {
-                mDicUI[pathData.name].transform.parent = parent;
-                mDicUI[pathData.name].transform.localScale = Vector3.one;
-                mDicUI[pathData.name].transform.localPosition = Vector3.zero;
-                NGUITools.SetActive(mDicUI[pathData.name], true);
-            }
+            case UIData.UIType.TYPE_BASE:
+                parent = BaseUIRoot.transform;
+                relativeDic = mDicBase;
+                mShowList = mShowViewList;
+                break;
+            case UIData.UIType.TYPE_DIALOG:
+                parent = DialogUIRoot.transform;
+                relativeDic = mDicDialog;
+                mShowList = mShowDialogList;
+                break;
+            case UIData.UIType.TYPE_TIPS:
+                parent = TipUIRoot.transform;
+                relativeDic = mDicTip;
+                break;
+            case UIData.UIType.TYPE_TOP_BAR:
+                parent = TopBarUIRoot.transform;
+                mShowList = mShowTopBarList;
+                relativeDic = mDicTop;
+                break;
+            case UIData.UIType.TYPE_POP:
+                parent = PopUIRoot.transform;
+                relativeDic = mDicPop;
+                mShowList = mShowViewList;
+
+                break;
+            default:
+                parent = UIRoot.list[0].transform;
+                break;
         }
-        else if (mDicUI != null)
+        if (relativeDic != null)
         {
-            GameObject obj = MonoBehaviour.Instantiate(curWindow) as GameObject;
-            obj.transform.parent = parent;
-            obj.transform.localScale = Vector3.one;
-            obj.transform.localPosition = Vector3.zero;
-            if (obj != null)
+            if (relativeDic.ContainsKey(pathData.name))
             {
-                mDicUI.Add(pathData.name, obj);
+                view = relativeDic[pathData.name];
+                view.gameObject.transform.parent = parent;
+                view.gameObject.transform.localScale = Vector3.one;
+                view.gameObject.transform.localPosition = Vector3.zero;
+                NGUITools.SetActive(view.gameObject, true);
+                if (mShowList != null)
+                    mShowList.Add(view);
+            }
+            else
+            {
+                GameObject obj = MonoBehaviour.Instantiate(curWindow) as GameObject;
+                obj.transform.parent = parent;
+                obj.transform.localScale = Vector3.one;
+                obj.transform.localPosition = Vector3.zero;
+                view = obj.GetComponent<BaseView>();
+                if (view != null)
+                {
+                    view.CurUIData = pathData;
+                    relativeDic.Add(pathData.name, view);
+                    if (mShowList != null)
+                    {
+                        mShowList.Add(view);
+                    }
+                }
+                else
+                {
+                    Debug.LogError("base view need script:" + pathData.name);
+                }
             }
         }
         if (delOpenUI != null)
         {
-            delOpenUI(curWindow != null, param);
-        }
-        if (pathData.backFlag)
-        {
-            AddShowUIList(pathData);
+            delOpenUI(view, parm);
         }
     }
 
-    void AddShowUIList(UIPathData newpathdata)
-    {
-        if (CurShowUIList.Contains(newpathdata))
-        {
-            CurShowUIList.Remove(newpathdata);
-        }
-        CurShowUIList.Insert(0, newpathdata);
-    }
 
-    public void CloseUI(UIPathData pathData)
+    public void Back(object parm = null, Action closeFinish = null)
     {
-        if (mDicUI == null)
+        int count = mShowDialogList.Count;
+        if (count > 0)
+        {
+            BaseView view = mShowDialogList[count - 1];
+            if (view != null && view.IsEnable)
+            {
+                view.Back(parm, closeFinish);
+                return;
+            }
             return;
-        string curName = pathData.name;
-        if (!mDicUI.ContainsKey(curName))
+        }
+        count = mShowViewList.Count;
+        if (count > 0)
+        {
+            BaseView view = mShowViewList[count - 1];
+            if (view != null && view.IsEnable)
+            {
+                view.Back(parm, closeFinish);
+            }
+        }
+    }
+    void Update()
+    {
+        if (Input.GetKeyUp(KeyCode.Escape))
+        {
+            Back();
+        }
+    }
+
+    public void CloseUI(UIData pathData, Action closeFinish = null)
+    {
+        Dictionary<string, BaseView> mDic = null;
+        switch (pathData.uiType)
+        {
+            case UIData.UIType.TYPE_BASE:
+                mDic = mDicBase;
+                break;
+            case UIData.UIType.TYPE_DIALOG:
+                mDic = mDicDialog;
+                break;
+            case UIData.UIType.TYPE_POP:
+                mDic = mDicPop;
+                break;
+            case UIData.UIType.TYPE_TOP_BAR:
+                mDic = mDicTop;
+                break;
+            case UIData.UIType.TYPE_TIPS:
+                mDic = mDicTip;
+                break;
+        }
+        if (mDic != null && mDic.ContainsKey(pathData.name))
+        {
+            mDic[pathData.name].OnExit(null, delegate
+            {
+                RecyleUI(pathData);
+                if (closeFinish != null)
+                {
+                    closeFinish();
+                }
+            });
+        }
+    }
+    public void Clear()
+    {
+        mDicCache.Clear();
+        mDicBase.Clear();
+        mDicPop.Clear();
+        mDicTop.Clear();
+        mDicDialog.Clear();
+        mShowViewList.Clear();
+        mShowDialogList.Clear();
+        mShowTopBarList.Clear();
+    }
+    public void CloseUI(BaseView view, Action closeFinsh = null)
+    {
+        UIData data = view.CurUIData;
+        CloseUI(data, closeFinsh);
+    }
+    public void RecyleUI(UIData pathData)
+    {
+        Dictionary<string, BaseView> mDic = null;
+        List<BaseView> mShowList = null;
+        switch (pathData.uiType)
+        {
+            case UIData.UIType.TYPE_BASE:
+                mDic = mDicBase;
+                mShowList = mShowViewList;
+                break;
+            case UIData.UIType.TYPE_DIALOG:
+                mDic = mDicDialog;
+                mShowList = mShowDialogList;
+                break;
+            case UIData.UIType.TYPE_POP:
+                mDic = mDicPop;
+                mShowList = mShowViewList;
+                break;
+            case UIData.UIType.TYPE_TOP_BAR:
+                mDic = mDicTop;
+                mShowList = mShowTopBarList;
+                break;
+            case UIData.UIType.TYPE_TIPS:
+                mDic = mDicTip;
+                break;
+        }
+        if (mDic == null)
             return;
-
-        NGUITools.SetActive(mDicUI[curName], false);
-
-        if (pathData.backFlag)
+        BaseView view = mDic[pathData.name];
+        if (view != null)
         {
-            RemoveShowList(pathData);
+            if (pathData.isCache)
+            {
+                NGUITools.SetActive(view.gameObject, false);
+                mDicCache.Add(pathData.name, view);
+            }
+            else
+            {
+                GameObject.Destroy(view.gameObject);
+            }
+            mDic.Remove(pathData.name);
+            if (mShowList != null)
+            {
+                mShowList.Remove(view);
+            }
         }
-    }
-
-    void RemoveShowList(UIPathData pathData)
-    {
-        if (CurShowUIList.Contains(pathData))
-        {
-            CurShowUIList.Remove(pathData);
-        }
-    }
-
-    public bool BackUIFun()
-    {
-        //if (IsUnlockTutorialEnable())
-        //    return true;
-        if (CurShowUIList.Count <= 0)
-            return false;
-
-        UIPathData curPathdata = CurShowUIList[0];
-        if (curPathdata.needSelfClose)
-        {
-            return true;
-        }
-
-        CurShowUIList.RemoveAt(0);
-        if (curPathdata.name.Equals("ExitGameRoot"))
-        {
-            return false;
-        }
-        //else if()
-        //{
-        //}
-        
-        return true;
-    }
-
+    }	
 }
