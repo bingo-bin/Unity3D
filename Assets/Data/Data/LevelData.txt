@@ -1,0 +1,7 @@
+,关卡等级,名字,游戏模式,提示,,
+*,Level,Name,Mode,TipsStr,,
+*,1,1,TIME_MODE,123,,
+*,2,2,TIME_MODE,124,,
+*,3,3,KILL_MODE,125,,
+,4,4,TIME_MODE,126,,
+*,5,5,TIME_MODE,127,,

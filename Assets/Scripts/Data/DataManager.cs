@@ -34,10 +34,12 @@ public class DataManager  {
 
     static void ClearAllList()
     {
-       
+        mSoundDataList.Clear();
     }
 
     private static Dictionary<int, SoundData> mSoundDataDic = new Dictionary<int, SoundData>();
+    private static List<SoundData> mSoundDataList = new List<SoundData>();
+    
     public static SoundData GetSoundDataById(int id)
     {
 		if (mSoundDataDic==null||mSoundDataDic.Count == 0)
@@ -45,5 +47,14 @@ public class DataManager  {
             mSoundDataDic = DataReader.LoadTable<int, SoundData>("SoundData", "Id");
         }
         return DataReader.GetTableRow(mSoundDataDic, id);
+    }
+
+    public static List<SoundData> GetSoungDataList()
+    {
+        if (mSoundDataList == null || mSoundDataList.Count == 0)
+        {
+            mSoundDataList = DataReader.LoadImportData<SoundData>("SoundData");
+        }
+        return mSoundDataList;
     }
 }

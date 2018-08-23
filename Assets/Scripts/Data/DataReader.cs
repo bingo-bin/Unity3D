@@ -17,7 +17,7 @@ public static class DataReader
     }
     public static List<T> LoadImportData<T>(string fileName)
     {
-#if 	UNITY_EDITOR
+#if UNITY_EDITOR
         object obj = Resources.Load("Data/" + fileName);
         if (obj == null)
         {
