@@ -6,21 +6,91 @@ using System.IO;
 
 public class BundleCreator : Editor {
 
-//    public static string OutPutPathRoot = Application.dataPath + "/Bundle";
 
-//    //文件名：OBJ 字典  
-//    static Dictionary<string, Object>GetFileNameObjDic(Dictionary<string, string> pathDic)
-//    {
-//        Dictionary<string, Object> objDic = new Dictionary<string, Object>();
+   // ==============================Test=======================================
+        static string ResPath = Application.dataPath + "/BundleRes";
+        static string OutPutPathRoot = Application.dataPath + "/Bundle";
 
-//        List<string> fileNameList = new List<string>(pathDic.Keys);
-//        for(int i = 0; i < fileNameList.Count; i++)
-//        {
-//            objDic.Add(fileNameList[i],AssetDatabase.LoadMainAssetAtPath(pathDic[fileNameList[i]]));
-//        }
-//        return objDic;
-//    }
+        //[MenuItem("Bundle/CreateTestBundle")]
+        //public static void CreateTestBundle()
+        //{
+        //    FileUtil.DeleteFileOrDirectory(OutPutPathRoot);
+        //    CreateTestBundle(ResPath, OutPutPathRoot);
+        //}
+        //static string[] FileEnd = new string[] { "prefab" };
+        //static void CreateTestBundle(string resPath, string outPutPath)
+        //{
+        //    Dictionary<string, string> PathDic = GetFilePathNamePathsDic(resPath, FileEnd);
+        //    Dictionary<string, Object> ObjsDic = GetFileNameObjDic(PathDic);
+        //    Dictionary<string, Object> finalObjsDic = new Dictionary<string, Object>();
 
+        //    foreach (KeyValuePair<string, string> curObjPath in PathDic)
+        //    {
+        //        string curKey = curObjPath.Key;
+        //        if (!ObjsDic.ContainsKey(curKey))
+        //        {
+        //            Debug.LogError(curKey);
+        //            continue;
+        //        }
+        //        //curKey = RecordSourceLevel(curKey, startPath, curObjPath.Value, loadPath);
+        //        finalObjsDic.Add(curKey, ObjsDic[curObjPath.Key]);
+        //    }
+        //    BuildAssetBundleOptions optionNormal = BuildAssetBundleOptions.CollectDependencies | BuildAssetBundleOptions.CompleteAssets | BuildAssetBundleOptions.DisableWriteTypeTree | BuildAssetBundleOptions.DeterministicAssetBundle;
+        //    foreach (KeyValuePair<string, Object> obj in finalObjsDic)
+        //    {
+        //        BuildPipeline.PushAssetDependencies();
+        //        string outputPath = outPutPath + "/" + obj.Key + ".bundle";
+        //        MyFileUtil.CheckPath(outputPath);
+        //        BuildPipeline.BuildAssetBundle(obj.Value, null, outputPath, optionNormal, BuildTarget.Android);
+        //        BuildPipeline.PopAssetDependencies();
+        //    }
+        //    //FileUtil.DeleteFileOrDirectory(Application.streamingAssetsPath + "/Bundle");
+        //    //FileUtil.CopyFileOrDirectory(outPutPath, Application.streamingAssetsPath + "/Bundle");
+        //    Debug.Log("Create Test Bundle Done");
+        //}
+        static Dictionary<string, string> GetFilePathNamePathsDic(string path, string[] fileEndArray)
+        {
+            Dictionary<string, string> pathDic = new Dictionary<string, string>();
+            GetFilePathNamePathDicRecursion(pathDic, path, path, fileEndArray);
+            return pathDic;
+        }
+
+        //文件名：OBJ 字典  
+        static Dictionary<string, Object> GetFileNameObjDic(Dictionary<string, string> pathDic)
+        {
+            Dictionary<string, Object> objDic = new Dictionary<string, Object>();
+
+            List<string> fileNameList = new List<string>(pathDic.Keys);
+            for (int i = 0; i < fileNameList.Count; i++)
+            {
+                objDic.Add(fileNameList[i], AssetDatabase.LoadMainAssetAtPath(pathDic[fileNameList[i]]));
+            }
+            return objDic;
+        }
+        static void GetFilePathNamePathDicRecursion(Dictionary<string, string> pathDic, string startPath, string curPath, string[] fileEndArray)
+        {
+            string[] fileArray = Directory.GetFiles(curPath);
+            string[] directoryArray = Directory.GetDirectories(curPath);
+
+            for (int i = 0; i < fileArray.Length; i++)
+            {
+                for (int j = 0; j < fileEndArray.Length; j++)
+                {
+                    if (fileArray[i].EndsWith(fileEndArray[j]))
+                    {
+                        string curFilePath = fileArray[i].Replace("\\", "/");
+                        curFilePath = fileArray[i].Substring(startPath.Length + 1);
+                        pathDic.Add(curFilePath.Substring(0, curFilePath.Length - fileEndArray[j].Length - 1).Replace("\\", "/"), fileArray[i].Replace(Application.dataPath, "Assets").Replace("\\", "/"));
+                        break;
+                    }
+                }
+            }
+
+            for (int i = 0; i < directoryArray.Length; i++)
+            {
+                GetFilePathNamePathDicRecursion(pathDic, startPath, directoryArray[i], fileEndArray);
+            }
+        }
 //    //文件名：路径 字典  
 //    static Dictionary<string, string> GetFileNamePathsDic(string path, string[] fileEndArray)
 //    {
@@ -166,30 +236,7 @@ public class BundleCreator : Editor {
 //        return pathDic;
 //    }
 	
-//    static void GetFilePathNamePathDicRecursion(Dictionary<string, string> pathDic, string startPath, string curPath, string[] fileEndArray)
-//    {
-//        string[] fileArray = Directory.GetFiles(curPath);
-//        string[] directoryArray = Directory.GetDirectories(curPath);
-		
-//        for(int i = 0; i < fileArray.Length; i++)
-//        {
-//            for(int j = 0; j < fileEndArray.Length; j++)
-//            {
-//                if(fileArray[i].EndsWith(fileEndArray[j]))
-//                {
-//                    string curFilePath = fileArray[i].Replace("\\","/");
-//                    curFilePath = fileArray[i].Substring(startPath.Length + 1);
-//                    pathDic.Add(curFilePath.Substring(0,curFilePath.Length - fileEndArray[j].Length - 1).Replace("\\","/"), fileArray[i].Replace(Application.dataPath, "Assets").Replace("\\","/"));
-//                    break;
-//                }
-//            }
-//        }
-		
-//        for(int i = 0; i < directoryArray.Length; i++)
-//        {
-//            GetFilePathNamePathDicRecursion(pathDic, startPath, directoryArray[i], fileEndArray);
-//        }
-//    }
+//   
 
 //    static string[] DataFileEnd = new string[]{"txt"};
 	

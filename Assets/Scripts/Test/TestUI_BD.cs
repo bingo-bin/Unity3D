@@ -3,6 +3,9 @@ using System.Collections;
 
 public class TestUI_BD : MonoBehaviour {
 
+    public UISprite LeftBtn;
+    public TweenAlpha AlphaAnima;
+
 	// Use this for initialization
 	void Start () {
 	
