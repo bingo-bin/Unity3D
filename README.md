@@ -10,3 +10,4 @@ unity 4.7.1
 
 DataManager
 UIManager
+插件：unity-logs-viewer
