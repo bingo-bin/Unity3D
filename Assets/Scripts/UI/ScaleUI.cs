@@ -13,6 +13,7 @@ public class ScaleUI : MonoBehaviour {
 	void ChangeScale()
 	{
         this.transform.localScale = Vector3.one * Mathf.Clamp01((Screen.width / (float)Screen.height) * ScreenRate);
+        //this.transform.localScale = Vector3.right * Mathf.Clamp01((Screen.width / (float)Screen.height) * ScreenRate) + Vector3.forward + Vector3.up;
 	}
 
 	void OnDisable()
